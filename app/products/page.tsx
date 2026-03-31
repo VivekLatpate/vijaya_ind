@@ -3,14 +3,39 @@ import TrustBar from "../components/TrustBar";
 import Navbar from "../components/Navbar";
 import CTA from "../components/CTA";
 import Footer from "../components/Footer";
-import ClientCatalogue from "./ClientCatalogue";
+import ClientCatalogueLive from "./ClientCatalogueLive";
+import { connectToDatabase } from "@/lib/db";
+import { ProductModel } from "@/models/Product";
 
 export const metadata: Metadata = {
   title: "Product Catalogue | Vijaya Industries",
   description: "Explore our complete range of automobile clips and fastening solutions. Reliable inventory ready for distributors and assembly lines.",
 };
 
-export default function ProductsPage() {
+export default async function ProductsPage() {
+  await connectToDatabase();
+
+  const products = await ProductModel.find({ isActive: true })
+    .populate("category", "name")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const catalogueProducts = products.map((product) => ({
+    id: String(product._id),
+    name: product.name,
+    brand: product.brand,
+    category:
+      typeof product.category === "object" && product.category && "name" in product.category
+        ? product.category.name
+        : "Uncategorized",
+    price: product.price,
+    imageUrl: product.images[0] ?? null,
+    moq: product.moq,
+    stock: product.stock,
+    description: product.description,
+    model: product.model,
+  }));
+
   return (
     <>
       <TrustBar />
@@ -31,8 +56,7 @@ export default function ProductsPage() {
           </div>
         </section>
 
-        {/* Dynamic Client Catalogue System (Filters, Grid, Admin) */}
-        <ClientCatalogue />
+        <ClientCatalogueLive products={catalogueProducts} />
 
         <CTA />
       </main>

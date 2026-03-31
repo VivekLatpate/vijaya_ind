@@ -4,13 +4,15 @@ import { USER_ROLE_VALUES, type UserRole } from "@/lib/constants";
 
 export type UserDocument = {
   _id: string;
-  clerkId: string;
+  clerkId?: string;
   name: string;
   email: string;
   phone?: string;
   role: UserRole;
   companyName?: string;
   address?: string;
+  gstin?: string;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -19,9 +21,9 @@ const userSchema = new Schema<UserDocument>(
   {
     clerkId: {
       type: String,
-      required: true,
       unique: true,
       index: true,
+      sparse: true,
       trim: true,
     },
     name: {
@@ -56,6 +58,17 @@ const userSchema = new Schema<UserDocument>(
       type: String,
       default: "",
       trim: true,
+    },
+    gstin: {
+      type: String,
+      default: "",
+      trim: true,
+      uppercase: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
     },
   },
   {

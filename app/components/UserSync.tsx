@@ -24,7 +24,8 @@ export default function UserSync() {
         });
 
         if (!response.ok) {
-          throw new Error("Failed to sync your account.");
+          const data = (await response.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(data?.error ?? "Failed to sync your account.");
         }
 
         syncedUserId.current = userId;

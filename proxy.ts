@@ -5,11 +5,27 @@ const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
   "/admin(.*)",
   "/api/users(.*)",
+  "/api/categories(.*)",
+  "/api/products(.*)",
+  "/api/inventory(.*)",
+  "/api/ledger(.*)",
+  "/api/orders(.*)",
+  "/api/invoice(.*)",
 ]);
 
-const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
+const isAdminRoute = createRouteMatcher([
+  "/admin(.*)",
+  "/api/categories(.*)",
+  "/api/products(.*)",
+  "/api/inventory(.*)",
+  "/api/ledger(.*)",
+  "/api/orders(.*)",
+  "/api/invoice(.*)",
+]);
 
 export default clerkMiddleware(async (auth, req) => {
+  const pathname = req.nextUrl.pathname;
+
   if (req.nextUrl.pathname.startsWith("/api/internal/role")) {
     return NextResponse.next();
   }
@@ -18,7 +34,10 @@ export default clerkMiddleware(async (auth, req) => {
     await auth.protect();
   }
 
-  if (isAdminRoute(req)) {
+  const isAdminUsersRoute =
+    pathname === "/api/users" || pathname.startsWith("/api/users/role") || /^\/api\/users\/[^/]+$/.test(pathname);
+
+  if (isAdminRoute(req) || isAdminUsersRoute) {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.redirect(new URL("/sign-in", req.url));
