@@ -1,5 +1,4 @@
-import { MapPin, Phone, Mail, Send, Clock, Building, Globe, FileCheck } from "lucide-react";
-import Image from "next/image";
+import { Phone, Mail, Send, Clock, Building, Globe, FileCheck } from "lucide-react";
 
 import TrustBar from "../components/TrustBar";
 import Navbar from "../components/Navbar";

@@ -1,5 +1,9 @@
+"use client";
+
 import { Menu } from "lucide-react";
 import Link from "next/link";
+
+import AuthControls from "@/app/components/AuthControls";
 
 export default function Navbar() {
   return (
@@ -26,9 +30,10 @@ export default function Navbar() {
 
           {/* CTA & Mobile toggle */}
           <div className="flex items-center gap-4">
-            <button className="hidden md:flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition-all shadow-sm hover:shadow active:scale-95">
+            <button className="hidden xl:flex items-center justify-center bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition-all shadow-sm hover:shadow active:scale-95">
               Request Quote
             </button>
+            <AuthControls />
             <button className="md:hidden p-2 text-foreground hover:bg-muted rounded-md transition-colors">
               <Menu className="w-6 h-6" />
             </button>
