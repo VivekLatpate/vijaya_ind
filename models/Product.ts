@@ -1,4 +1,5 @@
 import { Model, Schema, Types, model, models } from "mongoose";
+import "@/models/Category";
 
 export type ProductDocument = {
   _id: string;
