@@ -686,6 +686,85 @@ export async function renderInvoicePdf(
 
 // ─── Email ────────────────────────────────────────────────────────────────────
 
+export async function generateInvoicePdf(
+  invoice: InvoiceDocument,
+  buyer: BuyerInfo,
+): Promise<Buffer> {
+  return renderInvoicePdf(invoice, buyer);
+}
+
+export async function generateFallbackInvoicePdf(
+  invoice: InvoiceDocument,
+  buyer: BuyerInfo,
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({
+      size: "A4",
+      margin: 40,
+    });
+    const chunks: Uint8Array[] = [];
+
+    doc.on("data", (chunk: Uint8Array) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)))));
+    doc.on("error", reject);
+
+    const buyerName = buyer.companyName || buyer.name;
+    const createdAt =
+      invoice.createdAt != null ? new Date(invoice.createdAt as unknown as string) : new Date();
+    const invoiceDate = Number.isNaN(createdAt.getTime())
+      ? "-"
+      : createdAt.toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+
+    doc.font("Helvetica-Bold").fontSize(18).text("Tax Invoice");
+    doc.moveDown(0.4);
+    doc.font("Helvetica").fontSize(11);
+    doc.text(`Invoice No: ${invoice.invoiceNumber}`);
+    doc.text(`Order ID: ${invoice.orderId ?? "-"}`);
+    doc.text(`Date: ${invoiceDate}`);
+    doc.moveDown();
+
+    doc.font("Helvetica-Bold").text("Seller");
+    doc.font("Helvetica");
+    doc.text(COMPANY.name);
+    doc.text(COMPANY.address.replace("\n", ", "));
+    doc.text(`GSTIN: ${COMPANY.gstin}`);
+    doc.moveDown();
+
+    doc.font("Helvetica-Bold").text("Buyer");
+    doc.font("Helvetica");
+    doc.text(buyerName);
+    doc.text(buyer.address ?? "-");
+    doc.text(`Email: ${buyer.email || "-"}`);
+    doc.text(`GSTIN: ${buyer.gstin ?? "-"}`);
+    doc.moveDown();
+
+    doc.font("Helvetica-Bold").text("Items");
+    doc.moveDown(0.5);
+    doc.font("Helvetica");
+    invoice.items.forEach((item, index) => {
+      doc.text(
+        `${index + 1}. ${item.name} | SKU: ${item.sku} | Qty: ${item.quantity} | Unit: ${formatCurrency(item.price)} | Total: ${formatCurrency(item.lineTotal)}`,
+      );
+    });
+    doc.moveDown();
+
+    doc.font("Helvetica-Bold").text("Summary");
+    doc.font("Helvetica");
+    doc.text(`CGST: ${formatCurrency(invoice.gstBreakup.cgst)}`);
+    doc.text(`SGST: ${formatCurrency(invoice.gstBreakup.sgst)}`);
+    doc.text(`IGST: ${formatCurrency(invoice.gstBreakup.igst)}`);
+    doc.text(`Total Amount: ${formatCurrency(invoice.totalAmount)}`);
+    doc.moveDown();
+    doc.text(`Amount in Words: ${amountInWords(invoice.totalAmount)}`);
+
+    doc.end();
+  });
+}
+
 export async function sendInvoiceEmail(params: {
   to: string;
   subject: string;
