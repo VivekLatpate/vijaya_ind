@@ -1,0 +1,29 @@
+{
+  "node": {
+    "00f3e75f489df63e22ef39defe520418791567ad89": {
+      "workers": {
+        "app/sign-up/[[...sign-up]]/page": {
+          "moduleId": 91415,
+          "async": false,
+          "exportedName": "invalidateCacheAction",
+          "filename": "node_modules/@clerk/nextjs/dist/esm/app-router/server-actions.js"
+        }
+      },
+      "exportedName": "invalidateCacheAction",
+      "filename": "node_modules/@clerk/nextjs/dist/esm/app-router/server-actions.js"
+    },
+    "002460adfdaabcf769900735999eb9f0dcbeba1b50": {
+      "workers": {
+        "app/sign-up/[[...sign-up]]/page": {
+          "moduleId": 91415,
+          "async": false,
+          "exportedName": "createOrReadKeylessAction",
+          "filename": "node_modules/@clerk/nextjs/dist/esm/app-router/keyless-actions.js"
+        }
+      },
+      "exportedName": "createOrReadKeylessAction",
+      "filename": "node_modules/@clerk/nextjs/dist/esm/app-router/keyless-actions.js"
+    }
+  },
+  "edge": {}
+}
