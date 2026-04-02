@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { errorResponse, successResponse } from "@/lib/api";
-import { razorpay } from "@/lib/razorpay";
+import { getRazorpayClient, getRazorpayKeyId, getRazorpayKeySecret } from "@/lib/razorpay";
 import crypto from "crypto";
 import { connectToDatabase } from "@/lib/db";
 import { OrderModel } from "@/models/Order";
@@ -19,6 +19,8 @@ export async function POST(request: Request) {
     const { action, amount, receipt, razorpayPaymentId, razorpayOrderId, razorpaySignature, orderDocId } = await request.json();
 
     if (action === "create_order") {
+      const razorpay = getRazorpayClient();
+
       // Create Razorpay Order
       const options = {
         amount: Math.round(amount * 100), // amount in smallest currency unit (paise)
@@ -27,23 +29,24 @@ export async function POST(request: Request) {
       };
       
       const order = await razorpay.orders.create(options);
-      return successResponse({ id: order.id, currency: order.currency, amount: order.amount });
+      return successResponse({
+        id: order.id,
+        currency: order.currency,
+        amount: order.amount,
+        keyId: getRazorpayKeyId(),
+      });
     } 
     
     if (action === "verify_payment") {
       // Verify Razorpay Signature
-      const secret = process.env.RAZORPAY_KEY_SECRET || "mock_key_secret";
+      const secret = getRazorpayKeySecret();
       const generated_signature = crypto
         .createHmac("sha256", secret)
         .update(razorpayOrderId + "|" + razorpayPaymentId)
         .digest("hex");
 
       if (generated_signature !== razorpaySignature) {
-        // Warning: This ignores verification if keys are not set for mock mode. 
-        // In production, this should always be validated.
-        if (process.env.RAZORPAY_KEY_SECRET) {
-          return errorResponse("Invalid signature", 400);
-        }
+        return errorResponse("Invalid signature", 400);
       }
 
       // Update Database
@@ -66,8 +69,9 @@ export async function POST(request: Request) {
     }
 
     return errorResponse("Invalid action", 400);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Razorpay Error:", error);
-    return errorResponse(error.message, 500);
+    const message = error instanceof Error ? error.message : "Razorpay request failed";
+    return errorResponse(message, 500);
   }
 }

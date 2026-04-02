@@ -1,5 +1,6 @@
 "use client";
 
+import Script from "next/script";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
@@ -14,6 +15,35 @@ type BuyerProfile = {
   gstin: string;
   phone: string;
 };
+
+type RazorpayCheckoutResponse = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayOptions = {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: RazorpayCheckoutResponse) => Promise<void>;
+  prefill: {
+    name: string;
+    contact: string;
+  };
+  theme: {
+    color: string;
+  };
+};
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: RazorpayOptions) => { open: () => void };
+  }
+}
 
 export default function CheckoutPage() {
   const { cart, cartTotal, clearCart } = useCart();
@@ -41,7 +71,7 @@ export default function CheckoutPage() {
           toast.error("Please complete your profile first.");
           router.push("/onboarding");
         }
-      } catch (err) {
+      } catch {
         toast.error("Failed to load profile");
       } finally {
         setLoading(false);
@@ -87,6 +117,7 @@ export default function CheckoutPage() {
 
       const isRazorpay = paymentMethod === "RAZORPAY";
       let razorpayOrderId = null;
+      let razorpayKeyId = "";
 
       if (isRazorpay) {
         const rpRes = await fetch("/api/payments/razorpay", {
@@ -97,6 +128,7 @@ export default function CheckoutPage() {
         const rpData = await rpRes.json();
         if (!rpRes.ok) throw new Error("Failed to initialize payment gateway");
         razorpayOrderId = rpData.id;
+        razorpayKeyId = rpData.keyId;
       }
 
       const res = await fetch("/api/checkout", {
@@ -115,14 +147,18 @@ export default function CheckoutPage() {
       const orderDocId = data.order._id;
 
       if (isRazorpay && razorpayOrderId) {
-        const options = {
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "mock_key_id",
+        if (!window.Razorpay) {
+          throw new Error("Razorpay checkout failed to load. Refresh the page and try again.");
+        }
+
+        const options: RazorpayOptions = {
+          key: razorpayKeyId,
           amount: Math.round(grandTotal * 100),
           currency: "INR",
           name: "Vijaya Industries",
           description: "B2B Order " + orderId,
           order_id: razorpayOrderId,
-          handler: async function (response: any) {
+          handler: async function (response: RazorpayCheckoutResponse) {
             try {
               toast.info("Verifying payment...");
               const verifyRes = await fetch("/api/payments/razorpay", {
@@ -141,7 +177,7 @@ export default function CheckoutPage() {
               toast.success(`Order ${orderId} confirmed via Online Payment.`);
               clearCart();
               router.push("/dashboard/orders");
-            } catch (err) {
+            } catch {
               toast.error("Payment verification failed.");
             }
           },
@@ -151,21 +187,22 @@ export default function CheckoutPage() {
           },
           theme: { color: "#0ea5e9" }
         };
-        const rzp = new (window as any).Razorpay(options);
+        const rzp = new window.Razorpay(options);
         rzp.open();
       } else {
         toast.success(`Order ${orderId} placed successfully via ${paymentMethod}`);
         clearCart();
         router.push(`/dashboard/orders`);
       }
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Checkout failed";
+      toast.error(message);
     }
   };
 
   return (
     <>
-      <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
       <Navbar />
       <main className="flex-1 bg-gray-50 py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
