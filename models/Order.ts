@@ -28,6 +28,8 @@ export type OrderDocument = {
   paymentStatus: PaymentStatus;
   address: string;
   notes: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -122,6 +124,16 @@ const orderSchema = new Schema<OrderDocument>(
       trim: true,
     },
     notes: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    razorpayOrderId: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    razorpayPaymentId: {
       type: String,
       default: "",
       trim: true,

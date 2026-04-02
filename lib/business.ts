@@ -128,7 +128,21 @@ export async function ensureInvoiceForOrder(orderId: string) {
   }
 
   const invoiceNumber = await nextSequence("INV");
-  const gstHalf = Number((order.gstAmount / 2).toFixed(2));
+  
+  const buyerDoc = await UserModel.findById(order.buyerId).lean();
+  const isIntraState = buyerDoc?.gstin?.startsWith("27") || false;
+  
+  const gstBreakup = isIntraState 
+    ? {
+        cgst: Number((order.gstAmount / 2).toFixed(2)),
+        sgst: Number((order.gstAmount / 2).toFixed(2)),
+        igst: 0,
+      } 
+    : {
+        cgst: 0,
+        sgst: 0,
+        igst: Number(order.gstAmount.toFixed(2)),
+      };
 
   return InvoiceModel.create({
     invoiceNumber,
@@ -142,11 +156,7 @@ export async function ensureInvoiceForOrder(orderId: string) {
       gstRate: item.gstRate,
       lineTotal: Number((item.price * item.quantity).toFixed(2)),
     })),
-    gstBreakup: {
-      cgst: gstHalf,
-      sgst: gstHalf,
-      igst: 0,
-    },
+    gstBreakup,
     totalAmount: order.totalAmount,
   });
 }

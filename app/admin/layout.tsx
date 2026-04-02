@@ -64,9 +64,7 @@ export default async function AdminLayout({
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
                 Unified Admin Panel
               </p>
-              <p className="mt-1 text-sm text-foreground">
-                Protected by Clerk, MongoDB roles, and admin-only APIs.
-              </p>
+              
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm">
               <span className="font-semibold text-heading">{user.email}</span>

@@ -56,6 +56,7 @@ export default function ProductsAdminClient() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState(emptyProductForm);
   const [categoryName, setCategoryName] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -68,13 +69,17 @@ export default function ProductsAdminClient() {
       const productsData = await productsResponse.json();
       const categoriesData = await categoriesResponse.json();
 
-      if (!productsResponse.ok) throw new Error(productsData.error ?? "Failed to load products.");
-      if (!categoriesResponse.ok) throw new Error(categoriesData.error ?? "Failed to load categories.");
+      if (!productsResponse.ok)
+        throw new Error(productsData.error ?? "Failed to load products.");
+      if (!categoriesResponse.ok)
+        throw new Error(categoriesData.error ?? "Failed to load categories.");
 
       setProducts(productsData.products ?? []);
       setCategories(categoriesData.categories ?? []);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load products.");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load products.",
+      );
     } finally {
       setLoading(false);
     }
@@ -88,7 +93,13 @@ export default function ProductsAdminClient() {
     const term = search.toLowerCase().trim();
     if (!term) return products;
     return products.filter((product) =>
-      [product.name, product.sku, product.brand, product.model, product.category?.name]
+      [
+        product.name,
+        product.sku,
+        product.brand,
+        product.model,
+        product.category?.name,
+      ]
         .join(" ")
         .toLowerCase()
         .includes(term),
@@ -132,7 +143,9 @@ export default function ProductsAdminClient() {
         .filter(Boolean),
     };
 
-    const url = editingProduct ? `/api/products/${editingProduct._id}` : "/api/products";
+    const url = editingProduct
+      ? `/api/products/${editingProduct._id}`
+      : "/api/products";
     const method = editingProduct ? "PATCH" : "POST";
 
     try {
@@ -142,13 +155,16 @@ export default function ProductsAdminClient() {
         body: JSON.stringify(payload),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Failed to save product.");
+      if (!response.ok)
+        throw new Error(data.error ?? "Failed to save product.");
 
       toast.success(editingProduct ? "Product updated." : "Product created.");
       setDrawerOpen(false);
       await loadData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save product.");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save product.",
+      );
     }
   };
 
@@ -156,11 +172,14 @@ export default function ProductsAdminClient() {
     try {
       const response = await fetch(`/api/products/${id}`, { method: "DELETE" });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Failed to delete product.");
+      if (!response.ok)
+        throw new Error(data.error ?? "Failed to delete product.");
       toast.success("Product deleted.");
       await loadData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete product.");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete product.",
+      );
     }
   };
 
@@ -172,11 +191,63 @@ export default function ProductsAdminClient() {
         body: JSON.stringify({ isActive: !product.isActive }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Failed to toggle visibility.");
+      if (!response.ok)
+        throw new Error(data.error ?? "Failed to toggle visibility.");
       toast.success(`Product ${product.isActive ? "hidden" : "activated"}.`);
       await loadData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to toggle visibility.");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to toggle visibility.",
+      );
+    }
+  };
+
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    let currentImages = productForm.images
+      ? productForm.images
+          .split(",")
+          .map((i) => i.trim())
+          .filter(Boolean)
+      : [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+        if (!response.ok)
+          throw new Error(data.error || "Failed to upload image");
+
+        if (data.url) {
+          currentImages.push(data.url);
+        }
+      }
+
+      setProductForm((current) => ({
+        ...current,
+        images: currentImages.join(", "),
+      }));
+      toast.success("Image(s) uploaded successfully.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Error uploading image",
+      );
+    } finally {
+      setIsUploading(false);
+      event.target.value = "";
     }
   };
 
@@ -190,12 +261,15 @@ export default function ProductsAdminClient() {
         body: JSON.stringify({ name: categoryName }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Failed to create category.");
+      if (!response.ok)
+        throw new Error(data.error ?? "Failed to create category.");
       setCategoryName("");
       toast.success("Category created.");
       await loadData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create category.");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create category.",
+      );
     }
   };
 
@@ -204,7 +278,7 @@ export default function ProductsAdminClient() {
       <AdminPageHeader
         eyebrow="Products"
         title="Catalogue and category management"
-        description="Add, edit, hide, or delete products and keep category structure tidy for the website and admin operations."
+        description="Add, edit, hide, or delete products"
         action={
           <div className="flex gap-3">
             <button
@@ -233,13 +307,18 @@ export default function ProductsAdminClient() {
             placeholder="Search by name, SKU, brand, model, or category"
             className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none ring-primary/20 focus:ring-4 md:max-w-md"
           />
-          <p className="text-sm text-foreground">{filteredProducts.length} products shown</p>
+          <p className="text-sm text-foreground">
+            {filteredProducts.length} products shown
+          </p>
         </div>
 
         {loading ? (
           <div className="mt-6 space-y-3">
             {[1, 2, 3].map((item) => (
-              <div key={item} className="h-16 animate-pulse rounded-2xl bg-slate-100" />
+              <div
+                key={item}
+                className="h-16 animate-pulse rounded-2xl bg-slate-100"
+              />
             ))}
           </div>
         ) : (
@@ -247,8 +326,18 @@ export default function ProductsAdminClient() {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  {["Product", "Category", "Pricing", "Stock", "Visibility", "Actions"].map((label) => (
-                    <th key={label} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  {[
+                    "Product",
+                    "Category",
+                    "Pricing",
+                    "Stock",
+                    "Visibility",
+                    "Actions",
+                  ].map((label) => (
+                    <th
+                      key={label}
+                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+                    >
                       {label}
                     </th>
                   ))}
@@ -258,8 +347,12 @@ export default function ProductsAdminClient() {
                 {filteredProducts.map((product) => (
                   <tr key={product._id}>
                     <td className="px-4 py-4">
-                      <p className="font-semibold text-heading">{product.name}</p>
-                      <p className="mt-1 text-sm text-foreground">{product.sku}</p>
+                      <p className="font-semibold text-heading">
+                        {product.name}
+                      </p>
+                      <p className="mt-1 text-sm text-foreground">
+                        {product.sku}
+                      </p>
                     </td>
                     <td className="px-4 py-4 text-sm text-foreground">
                       {product.category?.name || "Uncategorized"}
@@ -273,15 +366,32 @@ export default function ProductsAdminClient() {
                       <p className="mt-1">MOQ {product.moq}</p>
                     </td>
                     <td className="px-4 py-4">
-                      <StatusBadge tone={product.isActive ? "green" : "slate"} label={product.isActive ? "Visible" : "Hidden"} />
+                      <StatusBadge
+                        tone={product.isActive ? "green" : "slate"}
+                        label={product.isActive ? "Visible" : "Hidden"}
+                      />
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex flex-wrap gap-2">
-                        <button type="button" onClick={() => openEditDrawer(product)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50">Edit</button>
-                        <button type="button" onClick={() => void toggleProduct(product)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50">
+                        <button
+                          type="button"
+                          onClick={() => openEditDrawer(product)}
+                          className="rounded-xl border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void toggleProduct(product)}
+                          className="rounded-xl border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50"
+                        >
                           {product.isActive ? "Hide" : "Show"}
                         </button>
-                        <button type="button" onClick={() => void removeProduct(product._id)} className="rounded-xl border border-rose-200 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50">
+                        <button
+                          type="button"
+                          onClick={() => void removeProduct(product._id)}
+                          className="rounded-xl border border-rose-200 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"
+                        >
                           Delete
                         </button>
                       </div>
@@ -312,12 +422,18 @@ export default function ProductsAdminClient() {
             ["stock", "Initial Stock"],
             ["lowStockThreshold", "Low Stock Threshold"],
           ].map(([key, label]) => (
-            <label key={key} className="grid gap-2 text-sm font-medium text-heading">
+            <label
+              key={key}
+              className="grid gap-2 text-sm font-medium text-heading"
+            >
               {label}
               <input
                 value={productForm[key as keyof typeof productForm] as string}
                 onChange={(event) =>
-                  setProductForm((current) => ({ ...current, [key]: event.target.value }))
+                  setProductForm((current) => ({
+                    ...current,
+                    [key]: event.target.value,
+                  }))
                 }
                 className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none ring-primary/20 focus:ring-4"
               />
@@ -329,7 +445,10 @@ export default function ProductsAdminClient() {
             <select
               value={productForm.category}
               onChange={(event) =>
-                setProductForm((current) => ({ ...current, category: event.target.value }))
+                setProductForm((current) => ({
+                  ...current,
+                  category: event.target.value,
+                }))
               }
               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none ring-primary/20 focus:ring-4"
             >
@@ -347,37 +466,68 @@ export default function ProductsAdminClient() {
             <textarea
               value={productForm.description}
               onChange={(event) =>
-                setProductForm((current) => ({ ...current, description: event.target.value }))
+                setProductForm((current) => ({
+                  ...current,
+                  description: event.target.value,
+                }))
               }
               rows={4}
               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none ring-primary/20 focus:ring-4"
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-heading">
-            Image URLs or paths
-            <input
-              value={productForm.images}
-              onChange={(event) =>
-                setProductForm((current) => ({ ...current, images: event.target.value }))
-              }
-              placeholder="/image-a.png, /image-b.png"
-              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none ring-primary/20 focus:ring-4"
-            />
-          </label>
+          <div className="grid gap-2 text-sm font-medium text-heading">
+            Product Images
+            <div className="flex flex-col gap-2">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileUpload}
+                disabled={isUploading}
+                className="file:mr-4 file:rounded-xl file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary/20 disabled:opacity-50"
+              />
+              {isUploading && (
+                <p className="text-xs font-medium text-primary animate-pulse">
+                  Uploading...
+                </p>
+              )}
+              <input
+                value={productForm.images}
+                onChange={(event) =>
+                  setProductForm((current) => ({
+                    ...current,
+                    images: event.target.value,
+                  }))
+                }
+                placeholder="https://..."
+                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none ring-primary/20 focus:ring-4"
+              />
+              <p className="text-xs text-slate-500">
+                You can upload files from your device or paste existing URLs
+                separated by commas.
+              </p>
+            </div>
+          </div>
 
           <label className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-medium text-heading">
             <input
               type="checkbox"
               checked={productForm.isActive}
               onChange={(event) =>
-                setProductForm((current) => ({ ...current, isActive: event.target.checked }))
+                setProductForm((current) => ({
+                  ...current,
+                  isActive: event.target.checked,
+                }))
               }
             />
             Product visible on website
           </label>
 
-          <button type="submit" className="rounded-2xl bg-secondary px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
+          <button
+            type="submit"
+            className="rounded-2xl bg-secondary px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+          >
             {editingProduct ? "Save Changes" : "Create Product"}
           </button>
         </form>
@@ -398,14 +548,20 @@ export default function ProductsAdminClient() {
               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none ring-primary/20 focus:ring-4"
             />
           </label>
-          <button type="submit" className="rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary/90">
+          <button
+            type="submit"
+            className="rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary/90"
+          >
             Add Category
           </button>
         </form>
 
         <div className="mt-6 grid gap-3">
           {categories.map((category) => (
-            <div key={category._id} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm">
+            <div
+              key={category._id}
+              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+            >
               <p className="font-semibold text-heading">{category.name}</p>
               <p className="mt-1 text-foreground">{category.slug}</p>
             </div>

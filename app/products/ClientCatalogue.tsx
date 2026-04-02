@@ -2,11 +2,15 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
-import { Search, Filter, Trash2, Plus, ImageOff, ArrowRight, Package } from "lucide-react";
+import { Search, Filter, Trash2, Plus, ImageOff, ArrowRight, Package, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
+import { useCart } from "@/app/components/CartContext";
 
+import Link from "next/link";
 import { Product, MOCK_PRODUCTS } from "../lib/mockData";
 
 export default function ClientCatalogue() {
+  const { addToCart } = useCart();
   // --- Global State ---
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [visibleCount, setVisibleCount] = useState(8);
@@ -48,6 +52,21 @@ export default function ClientCatalogue() {
     if (confirm("Are you sure you want to delete this catalogue item?")) {
       setProducts(products.filter(p => p.id !== id));
     }
+  };
+
+  const handleQuickAdd = (e: React.MouseEvent, product: Product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      sku: `${product.brand.toUpperCase().substring(0,3)}-${product.id.toUpperCase()}`,
+      price: product.price,
+      gstRate: 18,
+      quantity: product.moq,
+      moq: product.moq
+    });
+    toast.success(`Added ${product.moq} x ${product.name} to cart.`);
   };
 
   const handleAddProduct = (e: React.FormEvent) => {
@@ -201,11 +220,14 @@ export default function ClientCatalogue() {
               {filteredProducts.slice(0, visibleCount).map((product) => (
                 <div key={product.id} className="group flex flex-col bg-white rounded-2xl border border-border overflow-hidden hover:border-primary/30 hover:shadow-lg transition-all duration-300 relative">
                   
+                  {/* Full Card Link Overlay */}
+                  <Link href={`/products/${product.id}`} className="absolute inset-0 z-20 block w-full h-full bg-transparent"><span className="sr-only">View Detail</span></Link>
+
                   {/* Admin Delete Action */}
                   {isAdminMode && (
                     <button 
-                      onClick={() => handleDelete(product.id)}
-                      className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-red-100 hover:bg-red-500 text-red-600 hover:text-white flex items-center justify-center shadow-sm transition-all border border-red-200 hover:border-red-600"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(product.id); }}
+                      className="absolute top-3 right-3 z-30 w-8 h-8 rounded-full bg-red-100 hover:bg-red-500 text-red-600 hover:text-white flex items-center justify-center shadow-sm transition-all border border-red-200 hover:border-red-600"
                       title="Permanently remove item"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -232,10 +254,7 @@ export default function ClientCatalogue() {
                   </div>
 
                   {/* Bottom: Information block */}
-                  <div className="p-5 flex-grow flex flex-col justify-between bg-white cursor-pointer relative">
-                    {/* Add invisible inset-0 link overlay logic if Detail page mapped later */}
-                    <a href={`#${product.id}`} className="absolute inset-0 z-0"><span className="sr-only">View Detail</span></a>
-                    
+                  <div className="p-5 flex-grow flex flex-col justify-between bg-white relative">
                     <div className="z-10 pointer-events-none">
                       <div className="flex justify-between items-start gap-2 mb-2">
                         <h3 className="font-semibold text-heading leading-tight group-hover:text-primary transition-colors pr-2">
@@ -250,9 +269,13 @@ export default function ClientCatalogue() {
                          <span className="text-[10px] text-slate-500 font-semibold uppercase">Bulk Tier</span>
                          <span className="text-sm font-bold text-heading">₹{product.price.toFixed(2)} <span className="text-xs font-normal text-slate-500">/pc</span></span>
                       </div>
-                      <button className="w-8 h-8 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors text-foreground">
-                         <span className="sr-only">Next Details</span>
-                         <ArrowRight className="w-4 h-4" />
+                      <button 
+                         onClick={(e) => handleQuickAdd(e, product)}
+                         className="relative z-30 w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors text-blue-600 border border-blue-100 shadow-sm"
+                         title="Quick Add MOQ to Cart"
+                      >
+                         <span className="sr-only">Quick Add</span>
+                         <ShoppingCart className="w-4 h-4" />
                       </button>
                     </div>
                   </div>

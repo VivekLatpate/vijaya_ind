@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Filter, ImageOff, Package, Search } from "lucide-react";
+import { ArrowRight, Filter, ImageOff, Package, Search, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
+import { useCart } from "@/app/components/CartContext";
 
 type CatalogueProduct = {
   id: string;
@@ -25,6 +27,7 @@ type ClientCatalogueLiveProps = {
 export default function ClientCatalogueLive({
   products,
 }: ClientCatalogueLiveProps) {
+  const { addToCart } = useCart();
   const [visibleCount, setVisibleCount] = useState(8);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("All");
@@ -55,6 +58,25 @@ export default function ClientCatalogueLive({
       return matchSearch && matchBrand && matchCategory;
     });
   }, [products, searchTerm, selectedBrand, selectedCategory]);
+
+  const handleQuickAdd = (e: React.MouseEvent, product: CatalogueProduct) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (product.stock === 0) {
+      toast.error(`${product.name} is out of stock.`);
+      return;
+    }
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      sku: `${product.brand.toUpperCase().substring(0, 3)}-${product.id.slice(-6).toUpperCase()}`,
+      price: product.price,
+      gstRate: 18,
+      quantity: product.moq,
+      moq: product.moq,
+    });
+    toast.success(`Added ${product.moq} × ${product.name} to cart.`);
+  };
 
   return (
     <section className="pb-24">
@@ -190,9 +212,13 @@ export default function ClientCatalogueLive({
                           <span className="text-xs font-normal text-slate-500">/pc</span>
                         </span>
                       </div>
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-foreground transition-colors group-hover:bg-primary group-hover:text-white">
-                        <ArrowRight className="h-4 w-4" />
-                      </div>
+                      <button
+                        onClick={(e) => handleQuickAdd(e, product)}
+                        className="relative z-20 flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 border border-blue-100 text-blue-600 shadow-sm transition-colors hover:bg-blue-600 hover:text-white"
+                        title={`Quick Add ${product.moq} units`}
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 </div>

@@ -35,7 +35,9 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   const isAdminUsersRoute =
-    pathname === "/api/users" || pathname.startsWith("/api/users/role") || /^\/api\/users\/[^/]+$/.test(pathname);
+    pathname === "/api/users" || 
+    pathname.startsWith("/api/users/role") || 
+    (/^\/api\/users\/[^/]+$/.test(pathname) && pathname !== "/api/users/sync" && pathname !== "/api/users/profile");
 
   if (isAdminRoute(req) || isAdminUsersRoute) {
     const { userId } = await auth();
