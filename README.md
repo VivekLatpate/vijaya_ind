@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Vijaya Industries B2B Platform
 
 A professional, industrial-grade B2B manufacturing website for "Vijaya Industries", built with Next.js and Tailwind CSS. The platform is designed specifically for bulk distributors, workshops, and assembly lines, providing a highly reliable and performant product visualization and ordering experience.
