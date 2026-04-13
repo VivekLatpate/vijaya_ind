@@ -1,0 +1,10 @@
+var R=require("../../../../chunks/[turbopack]_runtime.js")("server/app/api/payments/razorpay/route.js")
+R.c("server/chunks/[root-of-the-server]__0gox6wm._.js")
+R.c("server/chunks/node_modules_next_dist_0fs_96g._.js")
+R.c("server/chunks/_0cwbfha._.js")
+R.c("server/chunks/[root-of-the-server]__0_~_1-l._.js")
+R.c("server/chunks/[root-of-the-server]__0k1gs4x._.js")
+R.c("server/chunks/node_modules_0gnf0qa._.js")
+R.c("server/chunks/_next-internal_server_app_api_payments_razorpay_route_actions_10fr3t0.js")
+R.m(56840)
+module.exports=R.m(56840).exports

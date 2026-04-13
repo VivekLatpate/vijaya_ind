@@ -1,0 +1,29 @@
+{
+  "node": {
+    "0019fa3e9a97ecea8b2375b92803b81f1d29c087e6": {
+      "workers": {
+        "app/products/[id]/page": {
+          "moduleId": 37154,
+          "async": false,
+          "exportedName": "invalidateCacheAction",
+          "filename": "node_modules/@clerk/nextjs/dist/esm/app-router/server-actions.js"
+        }
+      },
+      "exportedName": "invalidateCacheAction",
+      "filename": "node_modules/@clerk/nextjs/dist/esm/app-router/server-actions.js"
+    },
+    "006271809484392d2c1f8f67ccdca7e69892af7a59": {
+      "workers": {
+        "app/products/[id]/page": {
+          "moduleId": 37154,
+          "async": false,
+          "exportedName": "createOrReadKeylessAction",
+          "filename": "node_modules/@clerk/nextjs/dist/esm/app-router/keyless-actions.js"
+        }
+      },
+      "exportedName": "createOrReadKeylessAction",
+      "filename": "node_modules/@clerk/nextjs/dist/esm/app-router/keyless-actions.js"
+    }
+  },
+  "edge": {}
+}
