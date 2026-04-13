@@ -20,21 +20,28 @@ export default async function ProductsPage() {
     .sort({ createdAt: -1 })
     .lean();
 
-  const catalogueProducts = products.map((product) => ({
-    id: String(product._id),
-    name: product.name,
-    brand: product.brand,
-    category:
-      typeof product.category === "object" && product.category && "name" in product.category
+  const catalogueProducts = products.map((product) => {
+    const categoryName =
+      typeof product.category === "object" &&
+      product.category &&
+      "name" in product.category &&
+      typeof product.category.name === "string"
         ? product.category.name
-        : "Uncategorized",
-    price: product.price,
-    imageUrl: product.images[0] ?? null,
-    moq: product.moq,
-    stock: product.stock,
-    description: product.description,
-    model: product.model,
-  }));
+        : "Uncategorized";
+
+    return {
+      id: String(product._id),
+      name: product.name,
+      brand: product.brand,
+      category: categoryName,
+      price: product.price,
+      imageUrl: product.images[0] ?? null,
+      moq: product.moq,
+      stock: product.stock,
+      description: product.description,
+      model: product.model,
+    };
+  });
 
   return (
     <>
