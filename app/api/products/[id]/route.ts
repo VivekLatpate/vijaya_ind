@@ -34,8 +34,20 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const value = body as Record<string, unknown>;
   const updateData: Record<string, unknown> = {};
-  if (value.name !== undefined) updateData.name = sanitizeText(value.name);
-  if (value.sku !== undefined) updateData.sku = sanitizeText(value.sku).toUpperCase();
+  if (value.name !== undefined) {
+    const name = sanitizeText(value.name);
+    if (!name) {
+      return errorResponse("Product name cannot be empty.", 422);
+    }
+    updateData.name = name;
+  }
+  if (value.sku !== undefined) {
+    const sku = sanitizeText(value.sku).toUpperCase();
+    if (!sku) {
+      return errorResponse("Product SKU cannot be empty.", 422);
+    }
+    updateData.sku = sku;
+  }
   if (value.brand !== undefined) updateData.brand = sanitizeText(value.brand);
   if (value.model !== undefined) updateData.model = sanitizeText(value.model);
   if (value.description !== undefined) updateData.description = sanitizeText(value.description);
@@ -48,6 +60,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     updateData.lowStockThreshold = sanitizeNumber(value.lowStockThreshold, 5);
   }
   if (typeof value.isActive === "boolean") updateData.isActive = sanitizeBoolean(value.isActive);
+
+  if (!Object.keys(updateData).length && value.category === undefined) {
+    return errorResponse("Provide at least one product field to update.", 422);
+  }
 
   if (value.category !== undefined) {
     const categoryId = sanitizeText(value.category);
@@ -63,11 +79,18 @@ export async function PATCH(request: Request, context: RouteContext) {
     updateData.category = categoryId;
   }
 
-  const product = await ProductModel.findByIdAndUpdate(id, updateData, {
-    returnDocument: "after",
-  })
-    .populate("category", "name slug")
-    .lean();
+  let product;
+  try {
+    product = await ProductModel.findByIdAndUpdate(id, updateData, {
+      returnDocument: "after",
+      runValidators: true,
+    })
+      .populate("category", "name slug")
+      .lean();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to update product.";
+    return errorResponse(message, 422);
+  }
 
   if (!product) {
     return errorResponse("Product not found.", 404);
